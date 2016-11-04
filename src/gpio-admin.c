@@ -26,20 +26,25 @@ static void usage_error(char **argv) {
 }
 
 static void allow_access_by_user(unsigned int pin, const char *filename) {
-  char path[PATH_MAX];
-  int size = snprintf(path, PATH_MAX, "/sys/devices/virtual/gpio/gpio%u/%s", pin, filename);
-  
-  if (size >= PATH_MAX) {
-    error(7, 0, "path of GPIO pin is too long!");
-  }
-  
-  if (chown(path, getuid(), getgid()) != 0) {
-    error(5, errno, "failed to change group ownership of %s", path);
-  }
-  
-  if (chmod(path, S_IRUSR|S_IWUSR) != 0) {
-    error(6, errno, "failed to set permissions of %s", path);
-  }
+    struct stat info;
+    char *sys_path = "/sys/class/gpio/gpio%u/%s";
+    if (stat("/sys/class/gpio", &info) != 0)
+        sys_path = "/sys/devices/virtual/gpio/gpio%u/%s";
+
+    char path[PATH_MAX];
+    int size = snprintf(path, PATH_MAX, sys_path, pin, filename);
+
+    if (size >= PATH_MAX) {
+        error(7, 0, "path of GPIO pin is too long!");
+    }
+                
+    if (chown(path, getuid(), getgid()) != 0) {
+        error(5, errno, "failed to change group ownership of %s", path);
+    }
+                  
+    if (chmod(path, S_IRUSR|S_IWUSR) != 0) {
+        error(6, errno, "failed to set permissions of %s", path);
+    }
 }
 
 static unsigned int parse_gpio_pin(const char *pin_str) {
